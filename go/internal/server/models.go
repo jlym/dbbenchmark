@@ -4,6 +4,14 @@ import (
 	"time"
 )
 
+type Role string
+
+const (
+	RoleLargeCreator Role = "LargeCreator"
+	RoleSmallCreator Role = "SmallCreator"
+	RoleViewer       Role = "Viewer"
+)
+
 type CreateUserRequest struct {
 	UserName string
 	Role     string
@@ -56,12 +64,23 @@ type GetFollowedResponse struct {
 	Cursor   string
 }
 
+type GetUserRequest struct {
+	CallerID string
+	UserID   string
+}
+
+type GetUserResponse struct {
+	User *User
+}
+
 type FollowUserRequest struct {
 	CallerID     string
 	TargetUserID string
 }
 
 type FollowUserResponse struct {
+	CallerUser *User
+	TargetUser *User
 }
 
 type CreatePostRequest struct {
@@ -83,6 +102,15 @@ type LikePostResponse struct {
 	Post *Post
 }
 
+type GetPostRequest struct {
+	CallerID string
+	PostID   string
+}
+
+type GetPostResponse struct {
+	Post *Post
+}
+
 type Post struct {
 	PostID        string
 	OwnerID       string
@@ -93,16 +121,9 @@ type Post struct {
 }
 
 type User struct {
-	UserID    string
-	UserName  string
-	Role      string
-	CreatedAt time.Time
+	UserID           string
+	UserName         string
+	Role             string
+	CreatedAt        time.Time
+	FollowedByCaller string
 }
-
-type Role string
-
-const (
-	RoleLargeCreator Role = "LargeCreator"
-	RoleSmallCreator Role = "SmallCreator"
-	RoleViewer       Role = "Viewer"
-)
