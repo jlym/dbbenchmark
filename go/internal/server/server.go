@@ -1,16 +1,18 @@
 package server
 
+import "context"
+
 type Server interface {
-	CreateUser(request *CreateUserRequest) (*CreateUserResponse, error)
-	GetUser(request *GetUserRequest) (*GetUserResponse, error)
-	FollowUser(request *FollowUserRequest) (*FollowUserResponse, error)
+	CreateUser(ctx context.Context, request *CreateUserRequest) (*CreateUserResponse, error)
+	GetUser(ctx context.Context, request *GetUserRequest) (*GetUserResponse, error)
+	FollowUser(ctx context.Context, request *FollowUserRequest) (*FollowUserResponse, error)
 
-	GetUserFeed(request *GetUserFeedRequest) (*GetUserFeedResponse, error)
-	GetFollowedFeed(request *GetFollowedFeedRequest) (*GetFollowedFeedResponse, error)
+	GetUserFeed(ctx context.Context, request *GetUserFeedRequest) (*GetUserFeedResponse, error)
+	GetFollowedFeed(ctx context.Context, request *GetFollowedFeedRequest) (*GetFollowedFeedResponse, error)
 
-	GetFollowed(request *GetFollowedRequest) (*GetFollowedResponse, error)
+	GetFollowed(ctx context.Context, request *GetFollowedRequest) (*GetFollowedResponse, error)
 
-	CreatePost(request *CreatePostRequest) (*CreatePostResponse, error)
-	GetPost(request *GetPostRequest) (*GetPostResponse, error)
-	LikePost(request *LikePostRequest) (*LikePostResponse, error)
+	CreatePost(ctx context.Context, request *CreatePostRequest) (*CreatePostResponse, error)
+	GetPost(ctx context.Context, request *GetPostRequest) (*GetPostResponse, error)
+	LikePost(ctx context.Context, request *LikePostRequest) (*LikePostResponse, error)
 }
