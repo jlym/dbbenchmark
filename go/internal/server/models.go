@@ -14,7 +14,7 @@ const (
 
 type CreateUserRequest struct {
 	UserName string
-	Role     string
+	Role     Role
 }
 
 type CreateUserResponse struct {
@@ -123,7 +123,7 @@ type Post struct {
 type User struct {
 	UserID           string
 	UserName         string
-	Role             string
+	Role             Role
 	CreatedAt        time.Time
-	FollowedByCaller string
+	FollowedByCaller bool
 }

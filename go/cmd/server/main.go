@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -10,33 +11,38 @@ import (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	action := ""
 	if len(os.Args) > 1 {
 		action = os.Args[1]
 	}
 
+	err := run(action)
+	if err != nil {
+		log.Fatalf("%+v\n", err)
+	}
+}
+
+func run(action string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	dbManager := postgres.DBManager{
+		Options: postgres.DevConnStringOptions,
+	}
+
 	if action == "create" {
-		pgServer := postgres.PGServer{
-			Host:     "localhost",
-			Password: "password",
-			Port:     5432,
-		}
-		err := pgServer.CreateDB(ctx)
+		err := dbManager.InitDB(ctx)
 		if err != nil {
-			log.Fatalf("%+v\n", err)
+			return err
 		}
 	} else if action == "drop" {
-		pgServer := postgres.PGServer{
-			Host:     "localhost",
-			Password: "password",
-			Port:     5432,
-		}
-		err := pgServer.DropDB(ctx)
+		err := dbManager.DropDB(ctx)
 		if err != nil {
-			log.Fatalf("%+v\n", err)
+			return err
 		}
+	} else {
+		return fmt.Errorf("unsupported action: \"%s\"", action)
 	}
+
+	return nil
 }
