@@ -193,6 +193,156 @@ func (p *PGServer) FollowUser(
 	return &s.FollowUserResponse{}, nil
 }
 
+func (p *PGServer) CreatePost(
+	ctx context.Context, request *s.CreatePostRequest) (*s.CreatePostResponse, error) {
+
+	if request.CallerID == "" {
+		return nil, errors.New("request.CallerID was empty")
+	} else if request.Content == "" {
+		return nil, errors.New("request.Content was empty")
+	}
+	callerID, content := request.CallerID, request.Content
+
+	innerCtx, cancel := getQueryContext(ctx)
+	defer cancel()
+
+	row := p.DBPool.QueryRow(innerCtx, `
+		INSERT INTO posts (post_id, owner_id, created_at, content)
+		VALUES (gen_random_uuid(), $1, $2, $3)
+		RETURNING post_id, owner_id, created_at, content
+	`, callerID, p.Clock.NowUtc(), content)
+
+	var postID string
+	var ownerID string
+	var createdAt time.Time
+	err := row.Scan(&postID, &ownerID, &createdAt, &content)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating post failed")
+	}
+
+	return &s.CreatePostResponse{
+		CallerID: callerID,
+		Post: &s.Post{
+			PostID:        postID,
+			OwnerID:       ownerID,
+			Content:       content,
+			CreatedAt:     createdAt.UTC(),
+			LikeCount:     0,
+			LikedByCaller: false,
+		},
+	}, nil
+}
+
+func (p *PGServer) GetPost(
+	ctx context.Context, request *s.GetPostRequest) (*s.GetPostResponse, error) {
+
+	if request.CallerID == "" {
+		return nil, errors.New("request.CallerID was empty")
+	} else if request.PostID == "" {
+		return nil, errors.New("request.PostID was empty")
+	}
+	callerID, postID := request.CallerID, request.PostID
+
+	// Query for post.
+	innerCtx, cancel := getQueryContext(ctx)
+	defer cancel()
+
+	row := p.DBPool.QueryRow(innerCtx, `
+		SELECT owner_id, created_at, content
+		FROM posts
+		WHERE post_id = $1
+		LIMIT 1;
+	`, postID)
+
+	var ownerID string
+	var createdAt time.Time
+	var content string
+	err := row.Scan(&ownerID, &createdAt, &content)
+	if err == sql.ErrNoRows {
+		return &s.GetPostResponse{}, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "querying for post failed")
+	}
+
+	// Query for like count.
+	innerCtx, cancel = getQueryContext(ctx)
+	defer cancel()
+
+	row = p.DBPool.QueryRow(innerCtx, `
+		SELECT COUNT(*)
+		FROM likes
+		WHERE post_id = $1;
+	`, postID)
+	var likeCount int
+	err = row.Scan(&likeCount)
+	if err != nil {
+		return nil, errors.Wrap(err, "querying for like count failed")
+	}
+
+	// Query to see if post is liked by caller.
+	innerCtx, cancel = getQueryContext(ctx)
+	defer cancel()
+
+	row = p.DBPool.QueryRow(innerCtx, `
+		SELECT EXISTS (
+			SELECT post_id, user_id
+			FROM likes
+			WHERE post_id = $1 AND user_id = $2
+		);
+	`, postID, callerID)
+	var likedByCaller bool
+	err = row.Scan(&likedByCaller)
+	if err != nil {
+		return nil, errors.Wrap(err, "querying to see if post is liked by caller failed")
+	}
+
+	return &s.GetPostResponse{
+		Post: &s.Post{
+			PostID:        postID,
+			OwnerID:       ownerID,
+			Content:       content,
+			CreatedAt:     createdAt.UTC(),
+			LikeCount:     likeCount,
+			LikedByCaller: likedByCaller,
+		},
+	}, nil
+}
+
+func (p *PGServer) LikePost(
+	ctx context.Context, request *s.LikePostRequest) (*s.LikePostResponse, error) {
+
+	if request.CallerID == "" {
+		return nil, errors.New("request.CallerID was empty")
+	} else if request.PostID == "" {
+		return nil, errors.New("request.PostID was empty")
+	}
+	callerID, postID := request.CallerID, request.PostID
+
+	innerCtx, cancel := getQueryContext(ctx)
+	defer cancel()
+
+	_, err := p.DBPool.Exec(innerCtx, `
+		INSERT INTO likes (post_id, user_id, created_at)
+		VALUES ($1, $2, $3)
+		ON CONFLICT DO NOTHING;
+	`, postID, callerID, p.Clock.NowUtc())
+	if err != nil {
+		return nil, errors.Wrap(err, "liking post failed")
+	}
+
+	getPostResp, err := p.GetPost(ctx, &s.GetPostRequest{
+		CallerID: callerID,
+		PostID:   postID,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "getting updated post failed")
+	}
+
+	return &s.LikePostResponse{
+		Post: getPostResp.Post,
+	}, nil
+}
+
 func (p *PGServer) assertUserExist(ctx context.Context, tx pgx.Tx, userID string) error {
 	innerCtx, cancel := getQueryContext(ctx)
 	defer cancel()
