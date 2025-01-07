@@ -70,22 +70,22 @@ func (d *DBManager) InitDB(parentCtx context.Context) error {
 		);
 
 		CREATE TABLE IF NOT EXISTS follows (
-			source_id TEXT NOT NULL,
-			target_id TEXT NOT NULL,
+			source_id UUID NOT NULL,
+			target_id UUID NOT NULL,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			PRIMARY KEY(source_id, target_id)
 		);
 
 		CREATE TABLE IF NOT EXISTS posts (
-			post_id TEXT PRIMARY KEY,
-			owner_id TEXT NOT NULL,
+			post_id UUID PRIMARY KEY,
+			owner_id UUID NOT NULL,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			content TEXT NOT NULL
 		);
 
 		CREATE TABLE IF NOT EXISTS likes (
-			post_id TEXT NOT NULL,
-			user_id TEXT NOT NULL,
+			post_id UUID NOT NULL,
+			user_id UUID NOT NULL,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			PRIMARY KEY(post_id, user_id)
 		);

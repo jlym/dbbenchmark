@@ -78,10 +78,7 @@ type FollowUserRequest struct {
 	TargetUserID string
 }
 
-type FollowUserResponse struct {
-	CallerUser *User
-	TargetUser *User
-}
+type FollowUserResponse struct{}
 
 type CreatePostRequest struct {
 	CallerID string
